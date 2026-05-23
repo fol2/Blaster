@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Blaster Smoke Tests</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #10131a;
+        color: #f7fafc;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        max-width: 760px;
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+
+      li {
+        margin: 8px 0;
+      }
+
+      .pass {
+        color: #86efac;
+      }
+
+      .fail {
+        color: #fca5a5;
+      }
+
+      .harness {
+        position: fixed;
+        left: -1200px;
+        top: 0;
+        width: 800px;
+        height: 500px;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Blaster Smoke Tests</h1>
+      <ul id="results"></ul>
+    </main>
+
+    <div class="harness" aria-hidden="true">
+      <span id="levelChip"></span>
+      <span id="coinChip"></span>
+      <span id="healthChip"></span>
+      <span id="bossChip"></span>
+      <canvas id="gameCanvas" width="800" height="500"></canvas>
+      <div id="abilityMeter">
+        <div id="abilityFill"></div>
+        <span id="abilityText"></span>
+      </div>
+      <div id="overlay" class="hidden">
+        <p id="overlayKicker"></p>
+        <h1 id="overlayTitle"></h1>
+        <p id="overlayBody"></p>
+        <button id="primaryAction" type="button"></button>
+        <button id="secondaryAction" type="button"></button>
+      </div>
+      <h2 id="selectedCharacterName"></h2>
+      <p id="selectedCharacterMeta"></p>
+      <meter id="healthMeter" min="0" max="100" value="100"></meter>
+      <meter id="chargeMeter" min="0" max="100" value="100"></meter>
+      <div id="characterShop"></div>
+      <div id="weaponShop"></div>
+      <div id="armourShop"></div>
+      <div id="itemShop"></div>
+    </div>
+
+    <script src="game-data.js"></script>
+    <script src="game.js"></script>
+    <script>
+      const results = document.getElementById("results");
+      const tests = [];
+
+      function test(name, assertion) {
+        tests.push({ name, assertion });
+      }
+
+      function assert(condition, message) {
+        if (!condition) {
+          throw new Error(message);
+        }
+      }
+
+      test("normal baddies award 3 coins", () => {
+        assert(window.BlasterData.ENEMY_COIN_REWARD === 3, "Expected 3 coins per baddie.");
+      });
+
+      test("boss rewards scale from about 100 to 1000 coins", () => {
+        assert(window.BlasterData.bossReward(1) === 100, "Level 1 boss reward should be 100.");
+        assert(window.BlasterData.bossReward(500) === 1000, "Level 500 boss reward should be 1000.");
+        assert(window.BlasterData.bossReward(250) > 500, "Middle levels should pay more than early levels.");
+      });
+
+      test("500 levels are supported", () => {
+        assert(window.BlasterData.MAX_LEVEL === 500, "Expected exactly 500 levels.");
+        assert(window.BlasterData.levelConfig(600).level === 500, "Level config should clamp above 500.");
+      });
+
+      test("force-field character is expensive and matches requested timing", () => {
+        const character = window.BlasterData.characters.find((entry) => entry.id === "astra-warden");
+        const maxCost = Math.max(...window.BlasterData.characters.map((entry) => entry.cost));
+        assert(character, "Astra Warden should exist.");
+        assert(character.cost === maxCost, "Force-field character should be one of the most expensive.");
+        assert(character.ability.id === "force-field", "Expected force-field ability.");
+        assert(character.ability.cooldown === 5, "Cooldown should be 5 seconds.");
+        assert(character.ability.duration >= 15 && character.ability.duration <= 20, "Duration should be 15-20 seconds.");
+      });
+
+      test("freezy knife costs 350 coins and freezes baddies", () => {
+        const weapon = window.BlasterData.weapons.find((entry) => entry.id === "freezy-knife");
+        assert(weapon, "Freezy Knife should exist.");
+        assert(weapon.cost === 350, "Freezy Knife should cost 350 coins.");
+        assert(weapon.freezeDuration > 0, "Freezy Knife should freeze enemies.");
+      });
+
+      test("enemy and boss variety exists", () => {
+        assert(window.BlasterData.enemies.length >= 5, "Expected at least five baddie types.");
+        assert(window.BlasterData.bosses.length >= 4, "Expected at least four boss types.");
+      });
+
+      function wait(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      test("force field kills normal baddies inside it", async () => {
+        const game = window.BlasterGame;
+        const state = game.state;
+        state.owned.characters.add("astra-warden");
+        state.selectedCharacter = "astra-warden";
+        game.startLevel();
+        state.enemies.length = 0;
+        state.projectiles.length = 0;
+        const enemyType = window.BlasterData.enemies[0];
+        state.enemies.push({
+          id: "test-skitter",
+          type: enemyType,
+          x: state.player.x + 10,
+          y: state.player.y,
+          radius: enemyType.radius,
+          health: 20,
+          maxHealth: 20,
+          speed: 0,
+          touchDamage: 0,
+          shootTimer: 10,
+          freezeTimer: 0,
+          scale: 1,
+          boss: false
+        });
+        game.activateAbility();
+        await wait(80);
+        assert(state.activeAbility && state.activeAbility.id === "force-field", "Force field should be active.");
+        assert(!state.enemies.some((enemy) => enemy.id === "test-skitter"), "Normal baddie should be removed by the force field.");
+      });
+
+      test("death flow shows GAME OVER", async () => {
+        const game = window.BlasterGame;
+        const state = game.state;
+        game.startLevel();
+        state.enemies.length = 0;
+        state.screen = "dying";
+        state.deathTimer = 1.3;
+        state.player.health = 0;
+        await wait(120);
+        assert(document.getElementById("overlayTitle").textContent === "GAME OVER!", "Expected GAME OVER overlay.");
+      });
+
+      test("boss defeat flow shows level clear and grants reward", () => {
+        const game = window.BlasterGame;
+        const state = game.state;
+        state.level = 9;
+        const before = state.coins;
+        game.clearLevel();
+        assert(document.getElementById("overlayTitle").textContent === "YOU CLEARED THE LEVEL!", "Expected clear overlay.");
+        assert(state.coins === before + window.BlasterData.bossReward(9), "Expected boss reward to be added.");
+      });
+
+      async function runTests() {
+        let passed = 0;
+        for (const entry of tests) {
+          const item = document.createElement("li");
+          try {
+            await entry.assertion();
+            item.className = "pass";
+            item.textContent = `PASS: ${entry.name}`;
+            passed += 1;
+          } catch (error) {
+            item.className = "fail";
+            item.textContent = `FAIL: ${entry.name} - ${error.message}`;
+          }
+          results.append(item);
+        }
+
+        document.title = passed === tests.length ? "Blaster Smoke Tests Passing" : "Blaster Smoke Tests Failing";
+      }
+
+      runTests();
+    </script>
+  </body>
+</html>

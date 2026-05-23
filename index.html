@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Blaster</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="game-shell">
+      <header class="top-bar" aria-label="Game status">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <strong>Blaster</strong>
+        </div>
+        <div class="hud" id="hud">
+          <span id="levelChip">Level 1</span>
+          <span id="coinChip">0 coins</span>
+          <span id="healthChip">Health 100%</span>
+          <span id="bossChip">Boss waiting</span>
+        </div>
+      </header>
+
+      <main class="play-layout">
+        <section class="arena-panel" aria-label="Arena">
+          <canvas id="gameCanvas" width="1280" height="720"></canvas>
+          <div class="ability-meter" id="abilityMeter">
+            <div class="ability-fill" id="abilityFill"></div>
+            <span id="abilityText">Ability ready</span>
+          </div>
+          <div class="overlay hidden" id="overlay" role="status" aria-live="polite">
+            <div class="overlay-inner">
+              <p id="overlayKicker">Level 1</p>
+              <h1 id="overlayTitle">Blaster</h1>
+              <p id="overlayBody">Arena ready.</p>
+              <div class="overlay-actions">
+                <button id="primaryAction" type="button">Start</button>
+                <button id="secondaryAction" type="button">Shop</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-panel" aria-label="Loadout">
+          <section class="loadout-summary">
+            <h2 id="selectedCharacterName">Nova Runner</h2>
+            <p id="selectedCharacterMeta">Fast starter</p>
+            <div class="stat-bars">
+              <label>
+                <span>Health</span>
+                <meter id="healthMeter" min="0" max="100" value="100"></meter>
+              </label>
+              <label>
+                <span>Charge</span>
+                <meter id="chargeMeter" min="0" max="100" value="100"></meter>
+              </label>
+            </div>
+          </section>
+
+          <section class="shop-section">
+            <div class="section-heading">
+              <h2>Characters</h2>
+            </div>
+            <div class="shop-grid" id="characterShop"></div>
+          </section>
+
+          <section class="shop-section">
+            <div class="section-heading">
+              <h2>Weapons</h2>
+            </div>
+            <div class="shop-grid" id="weaponShop"></div>
+          </section>
+
+          <section class="shop-section compact">
+            <div class="section-heading">
+              <h2>Armour</h2>
+            </div>
+            <div class="shop-grid" id="armourShop"></div>
+          </section>
+
+          <section class="shop-section compact">
+            <div class="section-heading">
+              <h2>Items</h2>
+            </div>
+            <div class="shop-grid" id="itemShop"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="game-data.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
