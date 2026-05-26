@@ -1,6 +1,6 @@
 # Blaster
 
-Blast all the baddies.
+Blast RPG-style sprite baddies, collect loose money, and fight across meadow, desert, crystal cave and forest arenas.
 
 ## Play
 

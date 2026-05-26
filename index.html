@@ -41,7 +41,16 @@
           </div>
         </section>
 
-        <aside class="side-panel" aria-label="Loadout">
+        <aside class="side-panel" aria-label="Shop and loadout">
+          <section class="shop-front" aria-label="Shop">
+            <div>
+              <p>Shop</p>
+              <h2>Gear up</h2>
+              <span id="shopBalance">0 coins</span>
+            </div>
+            <button id="shopStartAction" type="button">Start run</button>
+          </section>
+
           <section class="loadout-summary">
             <h2 id="selectedCharacterName">Nova Runner</h2>
             <p id="selectedCharacterMeta">Fast starter</p>
@@ -88,7 +97,7 @@
       </main>
     </div>
 
-    <script src="game-data.js"></script>
-    <script src="game.js"></script>
+    <script src="game-data.js?v=sprite-baddies"></script>
+    <script src="game.js?v=sprite-baddies"></script>
   </body>
 </html>

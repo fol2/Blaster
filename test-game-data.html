@@ -70,14 +70,16 @@
       <p id="selectedCharacterMeta"></p>
       <meter id="healthMeter" min="0" max="100" value="100"></meter>
       <meter id="chargeMeter" min="0" max="100" value="100"></meter>
+      <span id="shopBalance"></span>
+      <button id="shopStartAction" type="button"></button>
       <div id="characterShop"></div>
       <div id="weaponShop"></div>
       <div id="armourShop"></div>
       <div id="itemShop"></div>
     </div>
 
-    <script src="game-data.js"></script>
-    <script src="game.js"></script>
+    <script src="game-data.js?v=sprite-baddies"></script>
+    <script src="game.js?v=sprite-baddies"></script>
     <script>
       const results = document.getElementById("results");
       const tests = [];
@@ -102,6 +104,16 @@
         assert(window.BlasterData.bossReward(250) > 500, "Middle levels should pay more than early levels.");
       });
 
+      test("starter bosses are easier before the difficulty ramps up", () => {
+        const firstBoss = window.BlasterData.levelConfig(1);
+        const trainedBoss = window.BlasterData.levelConfig(31);
+        assert(firstBoss.bossHealthMultiplier < 1, "Level 1 boss should have reduced health for starters.");
+        assert(firstBoss.bossDamageMultiplier < firstBoss.enemyDamageMultiplier, "Level 1 boss attacks should be gentler than normal scaling.");
+        assert(firstBoss.bossShotCount === 3, "Level 1 boss should fire fewer shots.");
+        assert(firstBoss.bossShotCooldown > trainedBoss.bossShotCooldown, "Early boss shots should come more slowly.");
+        assert(trainedBoss.bossShotCount === 5, "Later bosses should recover the full shot pattern.");
+      });
+
       test("500 levels are supported", () => {
         assert(window.BlasterData.MAX_LEVEL === 500, "Expected exactly 500 levels.");
         assert(window.BlasterData.levelConfig(600).level === 500, "Level config should clamp above 500.");
@@ -117,6 +129,15 @@
         assert(character.ability.duration >= 15 && character.ability.duration <= 20, "Duration should be 15-20 seconds.");
       });
 
+      test("all characters have RPG sprite styling data", () => {
+        for (const character of window.BlasterData.characters) {
+          assert(character.visual, `${character.name} should have sprite styling.`);
+          assert(character.visual.hair, `${character.name} should have a hair or hood colour.`);
+          assert(character.visual.tunic, `${character.name} should have an outfit colour.`);
+          assert(character.visual.trim, `${character.name} should have trim detail.`);
+        }
+      });
+
       test("freezy knife costs 350 coins and freezes baddies", () => {
         const weapon = window.BlasterData.weapons.find((entry) => entry.id === "freezy-knife");
         assert(weapon, "Freezy Knife should exist.");
@@ -124,14 +145,150 @@
         assert(weapon.freezeDuration > 0, "Freezy Knife should freeze enemies.");
       });
 
+      test("shop catalogue has more fantasy gear", () => {
+        const weaponIds = new Set(window.BlasterData.weapons.map((entry) => entry.id));
+        const itemEffects = new Set(window.BlasterData.items.map((entry) => entry.effect));
+        assert(window.BlasterData.weapons.length >= 16, "Expected a much larger weapon shop.");
+        assert(window.BlasterData.armour.length >= 8, "Expected more armour choices.");
+        assert(window.BlasterData.items.length >= 12, "Expected more passive shop items.");
+        assert(weaponIds.has("royal-spear"), "Expected a spear in the weapon shop.");
+        assert(weaponIds.has("oak-longbow"), "Expected a bow in the weapon shop.");
+        assert(weaponIds.has("reaper-scythe"), "Expected a scythe in the weapon shop.");
+        assert(itemEffects.has("speedBonus"), "Expected speed items.");
+        assert(itemEffects.has("bossDamageMultiplier"), "Expected boss damage items.");
+      });
+
       test("enemy and boss variety exists", () => {
         assert(window.BlasterData.enemies.length >= 5, "Expected at least five baddie types.");
         assert(window.BlasterData.bosses.length >= 4, "Expected at least four boss types.");
       });
 
+      test("baddies render as pixel art", () => {
+        assert(window.BlasterData.ENEMY_RENDER_STYLE === "pixel-art", "Expected baddies to use pixel-art rendering.");
+        assert(window.BlasterData.ENEMY_ANIMATION_STYLE === "rpg-sprite-sheet", "Expected baddies to use RPG sprite-sheet movement.");
+      });
+
+      test("arena backgrounds use pixel terrain themes", () => {
+        const themes = window.BlasterData.terrainThemes;
+        const features = new Set(themes.map((theme) => theme.feature));
+        assert(window.BlasterData.TERRAIN_RENDER_STYLE === "pixel-art", "Expected pixel-art terrain rendering.");
+        assert(themes.length === 4, "Expected four terrain styles based on the reference images.");
+        assert(features.has("meadow"), "Expected a meadow terrain.");
+        assert(features.has("desert"), "Expected a desert terrain.");
+        assert(features.has("crystal"), "Expected a crystal cave terrain.");
+        assert(features.has("forest"), "Expected a forest terrain.");
+        assert(window.BlasterData.terrainForLevel(1).id !== window.BlasterData.terrainForLevel(2).id, "Adjacent levels should use different terrain.");
+      });
+
+      test("money pickups have different coin values", () => {
+        const moneyValues = window.BlasterData.moneyPickups.map((pickup) => pickup.value);
+        assert(window.BlasterData.moneyPickups.length >= 4, "Expected several money pickup types.");
+        assert(new Set(moneyValues).size === moneyValues.length, "Each money pickup type should have a different value.");
+        assert(Math.min(...moneyValues) > 0, "Money pickup values should be positive.");
+      });
+
+      test("baddies and bosses use RPG sprite roles", () => {
+        const spriteRoles = new Set([
+          "bandit",
+          "brute",
+          "void-mage",
+          "rogue",
+          "frost-guard",
+          "war-chief",
+          "crystal-sorceress",
+          "iron-warlord",
+          "void-oracle"
+        ]);
+        const enemyShapes = window.BlasterData.enemies.map((enemy) => enemy.shape);
+        const bossShapes = window.BlasterData.bosses.map((boss) => boss.shape);
+        for (const enemy of window.BlasterData.enemies) {
+          assert(spriteRoles.has(enemy.shape), `${enemy.name} should use an RPG sprite role.`);
+          assert(enemy.visual && enemy.visual.tunic && enemy.visual.trim, `${enemy.name} should have sprite outfit data.`);
+          assert(enemy.spriteWeapon, `${enemy.name} should have a sprite weapon.`);
+        }
+        for (const boss of window.BlasterData.bosses) {
+          assert(spriteRoles.has(boss.shape), `${boss.name} should use an RPG sprite role.`);
+          assert(boss.visual && boss.visual.tunic && boss.visual.trim, `${boss.name} should have sprite outfit data.`);
+          assert(boss.spriteWeapon, `${boss.name} should have a sprite weapon.`);
+        }
+        assert(new Set(enemyShapes).size === enemyShapes.length, "Every baddie type should have its own silhouette.");
+        assert(new Set(bossShapes).size === bossShapes.length, "Every boss type should have its own silhouette.");
+      });
+
+      test("shop opens from the menu and keeps a start button available", () => {
+        const game = window.BlasterGame;
+        game.state.level = 1;
+        document.getElementById("secondaryAction").click();
+        assert(game.state.screen === "shop", "Expected the menu shop action to open the shop.");
+        assert(document.getElementById("shopStartAction").textContent === "Start level 1", "Expected the shop to show a start action.");
+        assert(!document.getElementById("shopStartAction").disabled, "Shop start action should be available outside the arena.");
+      });
+
+      test("new passive items affect selected stats", () => {
+        const game = window.BlasterGame;
+        const state = game.state;
+        state.selectedWeapon = "pulse-pistol";
+        state.selectedArmour = "training-vest";
+        state.owned.items.clear();
+        const base = game.selectedStats();
+        state.owned.items.add("swift-boots");
+        state.owned.items.add("whetstone");
+        state.owned.items.add("hawk-lens");
+        state.owned.items.add("silver-quiver");
+        const upgraded = game.selectedStats();
+        assert(upgraded.speed > base.speed, "Swift Boots should increase speed.");
+        assert(upgraded.damage > base.damage, "Whetstone should increase damage.");
+        assert(upgraded.weapon.range > base.weapon.range, "Hawk Lens should increase weapon range.");
+        assert(upgraded.weapon.projectileSpeed > base.weapon.projectileSpeed, "Silver Quiver should increase projectile speed.");
+      });
+
+      test("player uses sprite-sheet movement state", async () => {
+        const game = window.BlasterGame;
+        game.startLevel();
+        game.state.enemies.length = 0;
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "d" }));
+        await wait(120);
+        window.dispatchEvent(new KeyboardEvent("keyup", { key: "d" }));
+        assert(game.state.player.facing === "right", "Moving right should use the right-facing sprite pose.");
+        assert(game.state.player.moving, "Movement should mark the sprite as walking.");
+        assert(game.state.player.walkTime > 0, "Walking should advance the sprite animation timer.");
+      });
+
+      test("baddies use facing and walk animation state", async () => {
+        const game = window.BlasterGame;
+        game.startLevel();
+        game.state.enemies.length = 0;
+        await wait(120);
+        assert(game.state.enemies.length > 0, "Expected a baddie to spawn.");
+        const enemy = game.state.enemies[0];
+        await wait(160);
+        assert(["up", "down", "left", "right"].includes(enemy.facing), "Baddie should track a sprite facing direction.");
+        assert(enemy.moving, "Baddie should mark itself as moving while walking.");
+        assert(enemy.walkTime > 0, "Baddie walking should advance animation time.");
+      });
+
       function wait(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
+
+      test("money lies around the arena and can be collected", async () => {
+        const game = window.BlasterGame;
+        const state = game.state;
+        state.level = 1;
+        game.startLevel();
+        state.enemies.length = 0;
+        const money = state.pickups.filter((pickup) => pickup.type === "money");
+        const moneyValues = new Set(money.map((pickup) => pickup.value));
+        assert(money.length >= window.BlasterData.moneyPickups.length, "Expected money pickups to spawn in the arena.");
+        assert(moneyValues.size >= window.BlasterData.moneyPickups.length, "Expected spawned money to include different amounts.");
+        const pickup = money[0];
+        const before = state.coins;
+        pickup.x = state.player.x;
+        pickup.y = state.player.y;
+        await wait(80);
+        assert(state.coins === before + pickup.value, "Collecting money should add its value to coins.");
+        assert(!state.pickups.includes(pickup), "Collected money should leave the arena.");
+      });
 
       test("force field kills normal baddies inside it", async () => {
         const game = window.BlasterGame;

@@ -121,6 +121,7 @@ button:disabled {
   display: block;
   width: 100%;
   height: 100%;
+  image-rendering: pixelated;
 }
 
 .side-panel {
@@ -133,12 +134,49 @@ button:disabled {
   background: var(--panel);
 }
 
+.shop-front,
 .loadout-summary,
 .shop-section {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-soft);
   padding: 12px;
+}
+
+.shop-front {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #192032;
+}
+
+.shop-front p,
+.shop-front h2 {
+  margin: 0;
+}
+
+.shop-front p {
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.shop-front span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.shop-front button {
+  flex: 0 0 auto;
+}
+
+.shop-front button.in-arena {
+  color: var(--text);
+  background: #343d4e;
 }
 
 .loadout-summary h2,
